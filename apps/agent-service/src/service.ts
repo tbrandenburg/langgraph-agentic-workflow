@@ -12,7 +12,10 @@ import {
 } from "@wf/workflow-core";
 import { CancellationRegistry } from "./cancellation.js";
 import { ConcurrencyLimiter } from "./concurrency.js";
+import { MetricsRegistry, type MetricsSnapshot } from "./metrics.js";
 import { redactRunArtifacts } from "./redact.js";
+import { readTrace, TraceWriter, type TraceEvent } from "./trace-store.js";
+import { createTracingMiddleware } from "./tracing-middleware.js";
 import {
   UnknownProjectOrWorkflowError,
   type RunStepView,
@@ -38,6 +41,10 @@ export interface AgentService {
   startRun(req: StartRunRequest): Promise<{ runId: string }>;
   getRun(runId: string): Promise<RunView | null>;
   cancelRun(runId: string): Promise<boolean>;
+  /** Modified-M6: parsed `.runs/<runId>/trace.jsonl` events, or `null` if the run/trace is unknown. */
+  getTrace(runId: string): Promise<TraceEvent[] | null>;
+  /** Modified-M6: real run/step counters, replacing the M5 `/metrics` stub. */
+  getMetrics(): MetricsSnapshot;
   stop(): void;
 }
 
@@ -57,7 +64,9 @@ const DEFAULT_SWEEP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
 export async function startAgentService(options: AgentServiceOptions = {}): Promise<AgentService> {
   const log = options.logger ?? jsonConsoleLogger;
   const checkpointer: Checkpointer = await createCheckpointer();
-  const graph = buildGraph(checkpointer);
+  const metrics = new MetricsRegistry();
+  const traceWriter = new TraceWriter();
+  const graph = buildGraph(checkpointer, createTracingMiddleware(traceWriter, metrics));
 
   const cancellation = new CancellationRegistry();
   const limiter = new ConcurrencyLimiter(
@@ -97,6 +106,7 @@ export async function startAgentService(options: AgentServiceOptions = {}): Prom
     const mode = process.env.AGENT_DRY_RUN === "1" ? ("dry-run" as const) : ("live" as const);
     runs.set(runId, { status: "running", finalizedAt: null });
     cancellation.register(runId);
+    metrics.recordRunStarted();
 
     const initialState: RunStateType = {
       run: {
@@ -126,11 +136,19 @@ export async function startAgentService(options: AgentServiceOptions = {}): Prom
       .invoke(initialState, config)
       .then(async (final) => {
         runs.set(runId, { status: final.status, finalizedAt: new Date() });
+        metrics.recordRunFinished(
+          final.status === "succeeded"
+            ? "succeeded"
+            : final.status === "cancelled"
+              ? "cancelled"
+              : "failed",
+        );
         await redactRunArtifacts(runId);
         log.info({ event: "run_finished", runId, status: final.status }, "run finished");
       })
       .catch((error: unknown) => {
         runs.set(runId, { status: "failed", finalizedAt: new Date() });
+        metrics.recordRunFinished("failed");
         log.info({ event: "run_error", runId, error: messageOf(error) }, "run errored");
       })
       .finally(() => {
@@ -171,11 +189,22 @@ export async function startAgentService(options: AgentServiceOptions = {}): Prom
     return cancellation.cancel(runId);
   }
 
+  async function getTrace(runId: string): Promise<TraceEvent[] | null> {
+    if (!runs.has(runId)) {
+      return null;
+    }
+    return readTrace(runId);
+  }
+
+  function getMetrics(): MetricsSnapshot {
+    return metrics.snapshot();
+  }
+
   function stop(): void {
     clearInterval(sweepTimer);
   }
 
-  return { startRun, getRun, cancelRun, stop };
+  return { startRun, getRun, cancelRun, getTrace, getMetrics, stop };
 }
 
 async function sweep(

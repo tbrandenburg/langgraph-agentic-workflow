@@ -25,5 +25,8 @@ export interface RunView {
 /** Thrown when the project/workflow pair cannot be resolved (zod already validated shape). */
 export class UnknownProjectOrWorkflowError extends Error {}
 
+export type { TraceEvent } from "./trace-store.js";
+export type { MetricsSnapshot } from "./metrics.js";
+
 /** Thrown when `MAX_CONCURRENT_RUNS` is reached. */
 export class CapacityExceededError extends Error {}

@@ -58,11 +58,23 @@ export function buildServer(
     return reply.send({ cancelled: true });
   });
 
-  // Placeholder for M6d: a real Prometheus /metrics endpoint. Kept as a documented stub here so
-  // the compose file's commented-out scrape target has something to point at without building
-  // full metrics collection in M5.
+  app.get("/runs/:runId/trace", async (request, reply) => {
+    const parsed = RunIdParamsSchema.safeParse(request.params);
+    if (!parsed.success) {
+      return reply.code(400).send({ error: "invalid_run_id" });
+    }
+    const trace = await agentService.getTrace(parsed.data.runId);
+    if (!trace) {
+      return reply.code(404).send({ error: "trace_not_found" });
+    }
+    return reply.send(trace);
+  });
+
+  // Modified-M6 (LangSmith/Prometheus descoped): real in-memory counters returned as JSON rather
+  // than Prometheus text exposition format — see `apps/agent-service/src/metrics.ts` for the
+  // documented rationale.
   app.get("/metrics", async (_request, reply) => {
-    return reply.type("text/plain").send("# metrics not yet implemented (see M6d)\n");
+    return reply.send(agentService.getMetrics());
   });
 
   return app;
