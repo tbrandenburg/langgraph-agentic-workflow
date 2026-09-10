@@ -38,3 +38,8 @@ artifacts/
 tmp/
 .runs/
 .run-api.pid
+.run-api.log
+
+# Playwright MCP scratch (ad-hoc screenshots/snapshots/console logs) — curated evidence lives
+# in docs/assets/, not here
+.playwright-mcp/
