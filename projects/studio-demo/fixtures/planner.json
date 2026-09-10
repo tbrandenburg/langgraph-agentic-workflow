@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "role": "planner",
+  "stepId": "plan",
+  "summary": "Acknowledged demo task; dummy planner produced no real plan.",
+  "artifacts": [
+    {
+      "id": "9b1d2c3e-4f50-4162-8a3b-4c5d6e7f8091",
+      "stepId": "plan",
+      "kind": "log",
+      "path": ".runs/studio-demo/plan/plan.log",
+      "bytes": 32,
+      "sha256": "d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4d4"
+    }
+  ],
+  "usage": {
+    "promptTokens": 10,
+    "completionTokens": 5,
+    "totalTokens": 15
+  }
+}
