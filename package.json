@@ -1,0 +1,29 @@
+{
+  "name": "langgraph-agentic-workflow",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "eslint . && prettier --check .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wf/agent-runtime": "workspace:*",
+    "@wf/workflow-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.3.3",
+    "tsx": "^4.23.13",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^2.1.5"
+  }
+}

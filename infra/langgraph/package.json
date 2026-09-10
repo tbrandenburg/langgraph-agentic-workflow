@@ -1,0 +1,12 @@
+{
+  "name": "@wf/langgraph-studio",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Dev-tooling glue for `langgraph dev` / LangGraph Studio local visual debugging. Not a real package (not built, not tested, not published) — only exists so pnpm can symlink @langchain/langgraph into this directory's node_modules for the JS-native LangGraph CLI's module resolution.",
+  "dependencies": {
+    "@langchain/langgraph": "^1.4.14",
+    "@wf/agent-runtime": "workspace:*",
+    "@wf/workflow-core": "workspace:*"
+  }
+}

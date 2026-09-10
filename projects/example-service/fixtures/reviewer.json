@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "role": "reviewer",
+  "stepId": "review",
+  "summary": "Review: PASS. The /health endpoint matches the plan, the added test asserts the expected status and body, validation (lint, tests, secret scan) reported success, and no unrelated files were touched. No follow-ups required.",
+  "artifacts": [
+    {
+      "id": "5c1d3e4f-6071-4182-ac3d-4e5f60718293",
+      "stepId": "review",
+      "kind": "log",
+      "path": ".runs/example/review/review.log",
+      "bytes": 96,
+      "sha256": "c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3c3"
+    }
+  ],
+  "usage": {
+    "promptTokens": 260,
+    "completionTokens": 110,
+    "totalTokens": 370
+  }
+}

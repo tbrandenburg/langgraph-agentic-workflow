@@ -1,0 +1,20 @@
+{
+  "name": "@wf/workflow-core",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@langchain/langgraph": "^1.4.14",
+    "@langchain/langgraph-checkpoint-postgres": "^1.0.5",
+    "@wf/agent-contracts": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.5"
+  }
+}

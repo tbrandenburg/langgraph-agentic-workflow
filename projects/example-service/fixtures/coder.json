@@ -1,0 +1,21 @@
+{
+  "ok": true,
+  "role": "coder",
+  "stepId": "implement",
+  "summary": "Implemented a GET /health endpoint in src/index.js returning {\"status\":\"ok\"} and added tests/health.test.js covering the 200 response and JSON body, following the planner's plan.",
+  "artifacts": [
+    {
+      "id": "4a0b2c3d-5e6f-4071-9b2c-3d4e5f607182",
+      "stepId": "implement",
+      "kind": "patch",
+      "path": ".runs/example/implement/change.patch",
+      "bytes": 512,
+      "sha256": "b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2b2"
+    }
+  ],
+  "usage": {
+    "promptTokens": 340,
+    "completionTokens": 160,
+    "totalTokens": 500
+  }
+}
