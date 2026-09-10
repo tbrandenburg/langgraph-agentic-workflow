@@ -2,5 +2,10 @@ packages:
   - "apps/*"
   - "packages/*"
   - "projects/*"
+  # infra/langgraph is dev-tooling glue for `langgraph dev`/LangGraph Studio, not a real
+  # package (no build/test/publish) — added to the workspace only so pnpm symlinks
+  # @langchain/langgraph and @wf/* into its node_modules for Node's own module resolution
+  # (the JS LangGraph CLI runs the entry file in place, it doesn't bundle/copy dependencies).
+  - "infra/*"
 allowBuilds:
   esbuild: true
