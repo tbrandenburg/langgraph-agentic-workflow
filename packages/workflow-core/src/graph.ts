@@ -25,9 +25,15 @@ const identityMiddleware: NodeMiddleware = (_name, fn) => fn;
 /**
  * Builds the reusable core LangGraph graph exactly as documented in INITIAL.md:
  * initialize -> advance -> {agent|bash|publish} -> advance (loop) -> publish -> END.
+ *
+ * `checkpointer` is optional: omit it (or pass `undefined`) when the graph will be hosted by an
+ * external runtime that manages its own persistence — e.g. the LangGraph API server started via
+ * `langgraph dev` / LangGraph Studio, which injects its own checkpointer around the compiled
+ * graph. All existing in-repo callers (`apps/agent-service`, `scripts/run-local.ts`) continue to
+ * pass an explicit checkpointer and are unaffected.
  */
 export function buildGraph(
-  checkpointer: BaseCheckpointSaver,
+  checkpointer?: BaseCheckpointSaver,
   middleware: NodeMiddleware = identityMiddleware,
 ) {
   return new StateGraph(RunState)
@@ -52,5 +58,5 @@ export function buildGraph(
     .addEdge("agent", "advance")
     .addEdge("bash", "advance")
     .addEdge("publish", END)
-    .compile({ checkpointer });
+    .compile(checkpointer ? { checkpointer } : {});
 }
