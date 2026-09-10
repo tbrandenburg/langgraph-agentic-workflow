@@ -1,2 +1,11 @@
-// Placeholder for M2: graph, state, types, registry, nodes/*, artifacts, persistence.
-export const WORKFLOW_CORE_PACKAGE = "@wf/workflow-core";
+export * from "./types.js";
+export * from "./state.js";
+export * from "./artifacts.js";
+export * from "./persistence.js";
+export * from "./registry.js";
+export * from "./graph.js";
+export * from "./nodes/initialize.js";
+export * from "./nodes/advance.js";
+export * from "./nodes/agent.js";
+export * from "./nodes/bash.js";
+export * from "./nodes/publish.js";
