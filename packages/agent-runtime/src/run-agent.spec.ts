@@ -120,4 +120,36 @@ describe("runAgent", () => {
     expect(result.ok).toBe(false);
     expect(result.error?.name).toBe("prompt-read-failed");
   });
+
+  it("passes the prompt + context as a positional CLI argument, never via stdin", async () => {
+    // Regression test for a real bug: `opencode run [message..]` reads its message from argv,
+    // not stdin — confirmed by direct testing against the real binary (piping JSON to stdin
+    // produces zero output and no provider call at all). This fake script inspects its own argv
+    // (not hardcoded fixture output) so a future regression back to stdin-only would fail here.
+    const promptFile = join(workDir, "planner.md");
+    await writeFile(promptFile, "You are the planner.", "utf8");
+    const bin = await fakeOpencode(
+      "fake-argv-echo.sh",
+      [
+        // Last argv element is the message; must be non-empty and contain the prompt content.
+        'message="${@: -1}"',
+        'if [ -z "$message" ]; then echo \'{"type":"error","error":{"name":"no-message","data":{"message":"empty"}}}\'; exit 0; fi',
+        'case "$message" in',
+        '  *"You are the planner."*) ;;',
+        '  *) echo \'{"type":"error","error":{"name":"bad-message","data":{"message":"prompt missing from argv"}}}\'; exit 0 ;;',
+        "esac",
+        // Also assert nothing meaningful was piped via stdin (should be closed/empty).
+        'stdin_content="$(cat)"',
+        'if [ -n "$stdin_content" ]; then echo \'{"type":"error","error":{"name":"unexpected-stdin","data":{"message":"stdin should be empty"}}}\'; exit 0; fi',
+        'echo \'{"type":"text","part":{"text":"ok"}}\'',
+        'echo \'{"type":"step_finish","part":{"reason":"stop"}}\'',
+        "exit 0",
+      ].join("\n"),
+    );
+
+    const result = await runAgent(baseInput(promptFile), { bin, runsRoot });
+
+    expect(result.ok).toBe(true);
+    expect(result.summary).toBe("ok");
+  });
 });

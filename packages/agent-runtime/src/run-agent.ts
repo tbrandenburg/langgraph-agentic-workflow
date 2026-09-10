@@ -32,16 +32,20 @@ export async function runAgent(
     return failure(input, "prompt-read-failed", messageOf(error));
   }
 
-  const stdinPayload = JSON.stringify({
-    prompt: promptContent,
-    input: input.input,
-  });
-
-  const args = ["run", "--format", "json", "--model", input.model];
+  // `opencode run [message..]` reads its prompt from a POSITIONAL CLI argument, not stdin —
+  // confirmed by direct testing: piping JSON to stdin (the previous approach) produces zero
+  // output and no provider call at all; `opencode` silently ignores stdin here. The message must
+  // be a single, readable (markdown) string, not a raw JSON dump — structured context (task,
+  // upstream results) is embedded as a fenced JSON block for the model to read.
+  const message = buildMessage(promptContent, input);
+  const args = ["run", "--format", "json", "--model", input.model, message];
 
   try {
     const execaOptions = {
-      input: stdinPayload,
+      // Explicitly close stdin: the message goes via argv (see above), and leaving stdin
+      // inherited/open can cause `opencode` (or anything it shells out to) to block waiting for
+      // input that will never arrive.
+      stdin: "ignore" as const,
       env: restrictedEnv(),
       killDescendants: true,
       reject: false as const,
@@ -106,6 +110,25 @@ function failure(input: RunAgentInput, name: string, message: string): AgentResu
     artifacts: [],
     error: { name, message },
   };
+}
+
+/** Builds a single readable (markdown) message: the prompt, followed by task + upstream
+ * context as a fenced JSON block. This is what actually gets sent to `opencode run` — never a
+ * raw JSON dump as the whole message. */
+function buildMessage(promptContent: string, input: RunAgentInput): string {
+  const context = {
+    task: input.input.task,
+    upstream: input.input.upstream,
+    stepId: input.input.stepId,
+  };
+  return [
+    promptContent.trim(),
+    "",
+    "## Context",
+    "```json",
+    JSON.stringify(context, null, 2),
+    "```",
+  ].join("\n");
 }
 
 function messageOf(error: unknown): string {
