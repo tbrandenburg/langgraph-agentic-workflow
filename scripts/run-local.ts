@@ -3,13 +3,11 @@
  * Minimal CLI entrypoint for M2's E2E gate:
  *   AGENT_DRY_RUN=1 pnpm tsx scripts/run-local.ts --project <id> --task "<description>" [--run-id <id>] [--resume-demo]
  *
- * NOTE (M2 stub, replace in M3): the bash/agent runners wired in here
- * (`dryRunBash`/`dryRunAgent`) are a MINIMAL local stub, not `@wf/agent-runtime`'s real
- * `run-agent.ts`/`run-script.ts`. They synthesize deterministic successful results without
- * spawning any process. M3 must replace `setDefaultAgentRunner`/`setDefaultScriptRunner` calls
- * below with real implementations from `@wf/agent-runtime` (or wire that package's exports in
- * here) without changing the node contract (`RunAgent`/`RunScript` types in
- * `packages/workflow-core/src/nodes/{agent,bash}.ts`).
+ * M3 update: wired to `@wf/agent-runtime`'s real implementations (`dryRunAgent`/`runAgent`/
+ * `runScript`) instead of the M2 stub. Mode-dependent: `AGENT_DRY_RUN=1` uses `dryRunAgent`
+ * (no process spawned) and a lightweight dry-run bash stub (still no process spawned, since
+ * dry-run must work fully offline/rate-limit-safe); anything else spawns the real `opencode`/
+ * `bash` processes via `runAgent`/`runScript`.
  */
 import { createHash, randomUUID } from "node:crypto";
 import { dirname, resolve } from "node:path";
@@ -22,6 +20,7 @@ import {
   setDefaultScriptRunner,
   type RunStateType,
 } from "@wf/workflow-core";
+import { dryRunAgent, runAgent, runScript } from "@wf/agent-runtime";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 process.env.WF_PROJECTS_ROOT ??= resolve(repoRoot, "projects");
@@ -43,38 +42,34 @@ function parseFlags(argv: string[]): Flags {
   if (!project || !task) {
     throw new Error("Usage: run-local.ts --project <id> --task <description> [--run-id <id>]");
   }
+  const runId = get("run-id");
   return {
     project,
     task,
-    runId: get("run-id"),
     resumeDemo: argv.includes("--resume-demo"),
+    ...(runId !== undefined ? { runId } : {}),
   };
 }
 
-/** M2 stub agent runner: synthesizes a deterministic result, never spawns `opencode`. */
-setDefaultAgentRunner(async (input) => {
-  const hash = createHash("sha256")
-    .update(JSON.stringify({ role: input.role, promptFile: input.promptFile }))
-    .digest("hex")
-    .slice(0, 12);
-  return {
-    ok: true,
-    role: input.role,
-    stepId: input.input.stepId,
-    summary: `[dry-run stub] ${input.role} completed (hash=${hash})`,
-    artifacts: [],
-  };
-});
+const isDryRunMode = process.env.AGENT_DRY_RUN === "1";
 
-/** M2 stub bash runner: synthesizes a deterministic success, never spawns a real process. */
+setDefaultAgentRunner(async (input) => (isDryRunMode ? dryRunAgent(input) : runAgent(input)));
+
+/** Dry-run bash stub: still no process spawned, so `AGENT_DRY_RUN=1` stays fully offline. */
 setDefaultScriptRunner(async (input) => {
+  if (!isDryRunMode) {
+    return runScript(input);
+  }
+  const hash = createHash("sha256")
+    .update(JSON.stringify({ path: input.path }))
+    .digest("hex");
   const artifact = {
     id: randomUUID(),
     stepId: input.idempotencyKey.split(":")[1] ?? "unknown",
     kind: "stdout" as const,
     path: input.path,
-    bytes: 0,
-    sha256: "0".repeat(64),
+    bytes: hash.length,
+    sha256: hash,
   };
   return {
     ok: true,

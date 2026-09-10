@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@wf/agent-runtime": "workspace:*",
     "@wf/workflow-core": "workspace:*"
   },
   "devDependencies": {
