@@ -98,6 +98,12 @@ importers:
         specifier: workspace:*
         version: link:../../packages/workflow-core
 
+  projects/example-service:
+    dependencies:
+      '@wf/workflow-core':
+        specifier: workspace:*
+        version: link:../../packages/workflow-core
+
 packages:
 
   '@cfworker/json-schema@4.1.1':

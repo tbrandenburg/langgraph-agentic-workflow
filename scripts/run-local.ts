@@ -29,6 +29,7 @@ interface Flags {
   project: string;
   task: string;
   runId?: string;
+  workflow?: string;
   resumeDemo: boolean;
 }
 
@@ -40,14 +41,18 @@ function parseFlags(argv: string[]): Flags {
   const project = get("project");
   const task = get("task");
   if (!project || !task) {
-    throw new Error("Usage: run-local.ts --project <id> --task <description> [--run-id <id>]");
+    throw new Error(
+      "Usage: run-local.ts --project <id> --task <description> [--run-id <id>] [--workflow <id>]",
+    );
   }
   const runId = get("run-id");
+  const workflow = get("workflow");
   return {
     project,
     task,
     resumeDemo: argv.includes("--resume-demo"),
     ...(runId !== undefined ? { runId } : {}),
+    ...(workflow !== undefined ? { workflow } : {}),
   };
 }
 
@@ -92,6 +97,15 @@ async function main(): Promise<void> {
 
   const { loadProject } = await import("@wf/workflow-core");
   const project = await loadProject(flags.project);
+
+  // Each project currently owns exactly one `workflow.ts` (no multi-workflow selection yet — see
+  // apps/run-api, M5). `--workflow` is accepted for forward-compatibility with the documented
+  // CLI invocation and validated against the project's single registered workflow id.
+  if (flags.workflow !== undefined && flags.workflow !== project.workflow.id) {
+    throw new Error(
+      `--workflow "${flags.workflow}" does not match project "${flags.project}"'s registered workflow "${project.workflow.id}"`,
+    );
+  }
   const checkpointer = await createCheckpointer();
   const graph = buildGraph(checkpointer);
 
