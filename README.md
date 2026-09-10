@@ -1,10 +1,10 @@
 # LangGraph Agentic Workflow
 
-![Execution graph: bootstrap → core (initialize → advance → agent/bash/publish loop)](docs/assets/langgraph-studio-graph.png)
+![The built-in /studio live execution-graph viewer showing a completed run: 5 core nodes green with checkmarks, per-step labels, and a live metrics strip](docs/assets/studio-page.png)
 
-_The exact graph served by [`langgraph dev`](#langgraph-studio-visual-debugging) / LangGraph Studio for the
-`studio-demo` project, rendered directly from the compiled LangGraph JS graph object — the same 5 reusable
-core nodes run every project workflow in this repo._
+_[`GET /studio`](#studio-live-execution-graph-viewer) — a self-hosted, credential-free, real-time execution
+viewer built into `apps/run-api`. No LangSmith account, no login, no external service: trigger a run and
+watch the same 5 reusable core nodes light up as they execute, live._
 
 A local, API-triggered [LangGraph](https://github.com/langchain-ai/langgraphjs) agent system with a strict
 split between **project-agnostic core orchestration** and **per-project workflow content**:
@@ -51,11 +51,27 @@ make stop       # graceful shutdown, zero orphaned child processes
 Unset `AGENT_DRY_RUN` (or set `AGENT_DRY_RUN=0`) to spawn real `opencode` agent processes and real bash
 scripts instead of deterministic stubs — see [Dry-run vs. live](#dry-run-vs-live-mode) below.
 
+## Studio: live execution-graph viewer
+
+While `make run` is up, open **`http://localhost:8080/studio`** in a browser. It's a single self-contained
+page (no build step, no external service, no login) that:
+
+- Renders the fixed 5-node core topology (`initialize → advance → {agent|bash|publish} → advance (loop) →
+publish → END`) as a hand-styled dark-theme diagram.
+- Lets you trigger a run (pre-filled to the fast `studio-demo` project) directly from the page.
+- Polls `GET /runs/:id` + `GET /runs/:id/trace` and animates each node through **idle → active (pulsing) →
+  completed (✓) / failed** in real time, with the live `stepId` label (e.g. `agent: plan`).
+- Shows a running metrics strip (`GET /metrics`) alongside the graph.
+
+This exists because LangGraph Studio's hosted UI (`smith.langchain.com/studio`) requires a LangSmith account
+login (gated behind hCaptcha) — `/studio` gives the same "watch your graph execute" experience with zero
+external dependency, credentials, or account.
+
 ## Architecture
 
 ```text
 apps/
-├── run-api/          POST /runs, GET /runs/:id, POST /runs/:id/cancel, GET /runs/:id/trace, GET /metrics
+├── run-api/          POST /runs, GET /runs/:id, POST /runs/:id/cancel, GET /runs/:id/trace, GET /metrics, GET /studio
 └── agent-service/     loads the project registry, compiles the graph once, executes runs, cancellation
 
 packages/
@@ -86,7 +102,7 @@ default assumed throughout local development, since live calls cost real tokens/
 project can supply `fixtures/<role>.json` (a canned `AgentResult`) for deterministic, byte-identical
 offline runs. Every run's manifest records `"mode": "dry-run" | "live"`, so traces are never ambiguous.
 
-## LangGraph Studio (visual debugging)
+## LangGraph Studio / `langgraph dev` (optional, requires a LangSmith account)
 
 `infra/langgraph/studio-graph.ts` hosts the `studio-demo` project behind `langgraph dev`
 (via the **JS-native** `@langchain/langgraph-cli` — the Python `langgraph-cli`'s in-memory dev server does
@@ -98,10 +114,13 @@ AGENT_DRY_RUN=1 npx --yes @langchain/langgraph-cli dev --no-browser --port 2024 
 ```
 
 This serves a LangGraph-JS-SDK-compatible REST API at `http://127.0.0.1:2024` (health check: `GET /ok`),
-and — if you have a LangSmith account — an interactive graph UI at
-`https://smith.langchain.com/studio?baseUrl=http://localhost:2024`. Without LangSmith credentials, the
-same execution graph shown above can always be regenerated locally and offline via LangGraph JS's own
-Mermaid export (no external account needed):
+and — **if you have a LangSmith account** — an interactive graph UI at
+`https://smith.langchain.com/studio?baseUrl=http://localhost:2024`. That hosted UI is gated behind a
+LangSmith login (with hCaptcha) with no supported credential-free bypass, which is exactly why this repo
+also ships the built-in [`/studio`](#studio-live-execution-graph-viewer) viewer above — use that first for
+day-to-day local development; use `langgraph dev` only if you specifically want LangGraph Studio's own
+tooling (e.g. checkpoint replay/fork) and already have a LangSmith account. Without any account at all, the
+same execution graph can always be regenerated locally and offline via LangGraph JS's own Mermaid export:
 
 ```ts
 const graph = buildGraph();

@@ -2,6 +2,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import type { AgentService } from "@app/agent-service";
 import { CapacityExceededError, UnknownProjectOrWorkflowError } from "@app/agent-service";
 import { RunIdParamsSchema, StartRunBodySchema } from "./schema.js";
+import { studioPageHtml } from "./studio-page.js";
 
 /**
  * Builds the Fastify app. Uses Fastify's built-in pino logger for structured JSON logs (per M5's
@@ -75,6 +76,13 @@ export function buildServer(
   // documented rationale.
   app.get("/metrics", async (_request, reply) => {
     return reply.send(agentService.getMetrics());
+  });
+
+  // Self-hosted, credential-free replacement for LangGraph Studio's hosted UI (which requires a
+  // LangSmith account + hCaptcha login unavailable in this environment). See `studio-page.ts` for
+  // the design rationale (hand-rolled SVG+CSS, no new dependency, no build step).
+  app.get("/studio", async (_request, reply) => {
+    return reply.type("text/html").send(studioPageHtml);
   });
 
   return app;

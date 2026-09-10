@@ -82,6 +82,36 @@ real bash scripts — costs real tokens/rate-limit budget.
   a custom one the test configured — `ArtifactStore`'s default `.runs/` root is separate from
   any custom trace directory a test might also set up.
 
+## `/studio` — built-in live execution-graph viewer
+
+`apps/run-api/src/studio-page.ts` serves a single, self-contained, credential-free HTML page at
+`GET /studio` while `make run` is up:
+
+```bash
+AGENT_DRY_RUN=1 make run
+# open http://localhost:8080/studio in a browser
+```
+
+It renders the fixed 5-node core topology (`initialize → advance → {agent|bash|publish} →
+advance (loop) → publish → END`) as a hand-styled dark-theme SVG diagram, lets you trigger a run
+from the page itself (pre-filled to the fast, dry-run-fixture-backed `studio-demo` project), and
+polls `GET /runs/:id` + `GET /runs/:id/trace` to animate each node through
+idle → active (pulsing) → completed (✓) / failed in real time, alongside a live `GET /metrics`
+strip. No LangSmith account, no login, no external network call of any kind.
+
+This exists specifically because LangGraph Studio's hosted UI requires a LangSmith account login
+gated behind hCaptcha, with no supported credential-free bypass (confirmed by direct testing — see
+`docs/IMPLEMENTATION_PLAN.md`'s history for the investigation). Use `/studio` as the default local
+dev tool; only reach for `langgraph dev`/hosted Studio below if you specifically need its own
+tooling (checkpoint replay/fork) and already have a LangSmith account.
+
+When extending `/studio`: keep it a single dependency-free static page (no bundler, no new
+`package.json` dependency, CDN `<script>` tags only if truly needed) — the hand-rolled SVG+CSS
+approach was a deliberate choice over Cytoscape.js/vis-network/Mermaid.js, since the graph
+topology is small and fixed, and hand-styling gives full control over live per-node state
+highlighting without fighting a generic layout engine or fragile DOM-scraping of a library's
+rendered output.
+
 ## LangGraph Studio / `langgraph dev`
 
 `infra/langgraph/studio-graph.ts` hosts `projects/studio-demo/` behind `langgraph dev`. Use the
