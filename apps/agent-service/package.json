@@ -6,6 +6,16 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc -b"
+    "build": "tsc -b",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@wf/agent-contracts": "workspace:*",
+    "@wf/agent-runtime": "workspace:*",
+    "@wf/workflow-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^2.1.5"
   }
 }

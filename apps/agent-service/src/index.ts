@@ -1,2 +1,4 @@
-// Placeholder for M5: loads registry, compiles graph, executes runs.
-export const AGENT_SERVICE_APP = "@app/agent-service";
+export { startAgentService } from "./service.js";
+export type { AgentService, AgentServiceOptions } from "./service.js";
+export type { RunStepView, RunSummaryStatus, RunView, StartRunRequest } from "./types.js";
+export { CapacityExceededError, UnknownProjectOrWorkflowError } from "./types.js";
